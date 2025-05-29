@@ -34,17 +34,23 @@ function App() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const encrypted = reader.result;
-      const decrypted = CryptoJS.AES.decrypt(encrypted, password);
-      const decryptedData = decrypted.toString(CryptoJS.enc.Utf8);
+      const encryptedBase64 = reader.result;
+      const decrypted = CryptoJS.AES.decrypt(encryptedBase64, password);
 
-      const blob = new Blob([decryptedData], { type: "text/plain" });
+      const words = decrypted.words;
+      const sigBytes = decrypted.sigBytes;
+      const u8 = new Uint8Array(sigBytes);
+      for (let i = 0; i < sigBytes; i++) {
+        u8[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+      }
+
+      const blob = new Blob([u8]);
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = file.name.replace(".enc", "");
       link.click();
     };
-    reader.readAsText(file);
+    reader.readAsText(file); // read as text because encrypted data is Base64
   };
 
   return (
