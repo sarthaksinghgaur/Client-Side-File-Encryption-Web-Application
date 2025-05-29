@@ -1,10 +1,20 @@
 import { useState } from "react";
-import CryptoJS from "crypto-js";
+import { encryptAES, decryptAES } from "./utils/cryptoUtils";
+import {
+  generateRSAKeys,
+  rsaEncryptFile,
+  rsaDecryptFile,
+  exportPublicKey,
+  exportPrivateKey,
+} from "./utils/rsaUtils";
 import "./App.css";
 
 function App() {
   const [file, setFile] = useState(null);
   const [password, setPassword] = useState("");
+  const [publicKey, setPublicKey] = useState(null);
+  const [privateKey, setPrivateKey] = useState(null);
+  const [encryptionMode, setEncryptionMode] = useState("AES"); // default to AES
 
   const handleEncrypt = () => {
     if (!file || !password) {
@@ -14,14 +24,15 @@ function App() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const wordArray = CryptoJS.lib.WordArray.create(reader.result);
-      const encrypted = CryptoJS.AES.encrypt(wordArray, password).toString();
-
-      const blob = new Blob([encrypted], { type: "text/plain" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = file.name + ".enc";
-      link.click();
+      try {
+        const blob = encryptAES(reader.result, password);
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = file.name + ".enc";
+        link.click();
+      } catch (error) {
+        alert("AES encryption failed!");
+      }
     };
     reader.readAsArrayBuffer(file);
   };
@@ -34,21 +45,15 @@ function App() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const encryptedBase64 = reader.result;
-      const decrypted = CryptoJS.AES.decrypt(encryptedBase64, password);
-
-      const words = decrypted.words;
-      const sigBytes = decrypted.sigBytes;
-      const u8 = new Uint8Array(sigBytes);
-      for (let i = 0; i < sigBytes; i++) {
-        u8[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+      try {
+        const blob = decryptAES(reader.result, password);
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = file.name.replace(".enc", "");
+        link.click();
+      } catch (error) {
+        alert("AES decryption failed! Check your password and try again.");
       }
-
-      const blob = new Blob([u8]);
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = file.name.replace(".enc", "");
-      link.click();
     };
     reader.readAsText(file); // read as text because encrypted data is Base64
   };
@@ -56,18 +61,111 @@ function App() {
   return (
     <div className="App">
       <h1>Client-Side File Encryption Tool</h1>
+      <div>
+        <label>
+          <input
+            type="radio"
+            name="encryptionMode"
+            value="AES"
+            checked={encryptionMode === "AES"}
+            onChange={() => setEncryptionMode("AES")}
+          />
+          AES (Password-based)
+        </label>
+        <label style={{ marginLeft: "20px" }}>
+          <input
+            type="radio"
+            name="encryptionMode"
+            value="RSA"
+            checked={encryptionMode === "RSA"}
+            onChange={() => setEncryptionMode("RSA")}
+          />
+          RSA (Key-based)
+        </label>
+      </div>
       <input
         type="file"
         onChange={(e) => setFile(e.target.files[0])}
       />
-      <input
-        type="password"
-        placeholder="Enter password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleEncrypt}>Encrypt</button>
-      <button onClick={handleDecrypt}>Decrypt</button>
+      {encryptionMode === "AES" && (
+        <div>
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button onClick={handleEncrypt}>Encrypt</button>
+          <button onClick={handleDecrypt}>Decrypt</button>
+        </div>
+      )}
+      {encryptionMode === "RSA" && (
+        <div>
+          <button onClick={() => generateRSAKeys(setPublicKey, setPrivateKey)}>Generate RSA Key Pair</button>
+          <button
+            onClick={async () => {
+              if (!file || !publicKey) {
+                alert("Select file & generate keys first.");
+                return;
+              }
+              const blob = await rsaEncryptFile(file, publicKey);
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.download = file.name + ".rsa.enc";
+              link.click();
+            }}
+          >
+            RSA Encrypt
+          </button>
+          <button
+            onClick={async () => {
+              if (!file || !privateKey) {
+                alert("Select file & generate keys first.");
+                return;
+              }
+              try {
+                const blob = await rsaDecryptFile(file, privateKey);
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = file.name.replace(".rsa.enc", "");
+                link.click();
+              } catch (error) {
+                alert("RSA decryption failed! The key might not match the file.");
+              }
+            }}
+          >
+            RSA Decrypt
+          </button>
+          {publicKey && (
+            <div>
+              <h3>Public Key (PEM):</h3>
+              <textarea
+                readOnly
+                rows={10}
+                cols={60}
+                onFocus={async (e) => {
+                  const pem = await exportPublicKey(publicKey);
+                  e.target.value = pem;
+                }}
+              />
+            </div>
+          )}
+          {privateKey && (
+            <div>
+              <h3>Private Key (PEM):</h3>
+              <textarea
+                readOnly
+                rows={10}
+                cols={60}
+                onFocus={async (e) => {
+                  const pem = await exportPrivateKey(privateKey);
+                  e.target.value = pem;
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
