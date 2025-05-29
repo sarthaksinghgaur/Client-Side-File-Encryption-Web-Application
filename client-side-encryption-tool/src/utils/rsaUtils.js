@@ -1,5 +1,3 @@
-// src/utils/rsaUtils.js
-
 // Generate RSA key pair
 export const generateRSAKeys = async (setPublicKey, setPrivateKey) => {
   const keyPair = await window.crypto.subtle.generateKey(

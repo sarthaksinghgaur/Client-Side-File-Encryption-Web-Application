@@ -61,7 +61,7 @@ function App() {
   return (
     <div className="App">
       <h1>Client-Side File Encryption Tool</h1>
-      <div>
+      <div className="radio-group">
         <label>
           <input
             type="radio"
@@ -72,7 +72,7 @@ function App() {
           />
           AES (Password-based)
         </label>
-        <label style={{ marginLeft: "20px" }}>
+        <label>
           <input
             type="radio"
             name="encryptionMode"
@@ -83,59 +83,76 @@ function App() {
           RSA (Key-based)
         </label>
       </div>
-      <input
-        type="file"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
+      <input type="file" onChange={(e) => setFile(e.target.files[0])} />
       {encryptionMode === "AES" && (
-        <div>
+        <section>
           <input
             type="password"
             placeholder="Enter password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button onClick={handleEncrypt}>Encrypt</button>
-          <button onClick={handleDecrypt}>Decrypt</button>
-        </div>
+          <div>
+            <button
+              onClick={handleEncrypt}
+              disabled={!file || !password}
+            >
+              Encrypt
+            </button>
+            <button
+              onClick={handleDecrypt}
+              disabled={!file || !password}
+            >
+              Decrypt
+            </button>
+          </div>
+        </section>
       )}
       {encryptionMode === "RSA" && (
-        <div>
-          <button onClick={() => generateRSAKeys(setPublicKey, setPrivateKey)}>Generate RSA Key Pair</button>
-          <button
-            onClick={async () => {
-              if (!file || !publicKey) {
-                alert("Select file & generate keys first.");
-                return;
-              }
-              const blob = await rsaEncryptFile(file, publicKey);
-              const link = document.createElement("a");
-              link.href = URL.createObjectURL(blob);
-              link.download = file.name + ".rsa.enc";
-              link.click();
-            }}
-          >
-            RSA Encrypt
-          </button>
-          <button
-            onClick={async () => {
-              if (!file || !privateKey) {
-                alert("Select file & generate keys first.");
-                return;
-              }
-              try {
-                const blob = await rsaDecryptFile(file, privateKey);
+        <section>
+          <div>
+            <button onClick={() => generateRSAKeys(setPublicKey, setPrivateKey)}>
+              Generate RSA Key Pair
+            </button>
+          </div>
+          <div>
+            <button
+              onClick={async () => {
+                if (!file || !publicKey) {
+                  alert("Select file & generate keys first.");
+                  return;
+                }
+                const blob = await rsaEncryptFile(file, publicKey);
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
-                link.download = file.name.replace(".rsa.enc", "");
+                link.download = file.name + ".rsa.enc";
                 link.click();
-              } catch (error) {
-                alert("RSA decryption failed! The key might not match the file.");
-              }
-            }}
-          >
-            RSA Decrypt
-          </button>
+              }}
+              disabled={!file || !publicKey}
+            >
+              RSA Encrypt
+            </button>
+            <button
+              onClick={async () => {
+                if (!file || !privateKey) {
+                  alert("Select file & generate keys first.");
+                  return;
+                }
+                try {
+                  const blob = await rsaDecryptFile(file, privateKey);
+                  const link = document.createElement("a");
+                  link.href = URL.createObjectURL(blob);
+                  link.download = file.name.replace(".rsa.enc", "");
+                  link.click();
+                } catch (error) {
+                  alert("RSA decryption failed! The key might not match the file.");
+                }
+              }}
+              disabled={!file || !privateKey}
+            >
+              RSA Decrypt
+            </button>
+          </div>
           {publicKey && (
             <div>
               <h3>Public Key (PEM):</h3>
@@ -164,7 +181,7 @@ function App() {
               />
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   );
