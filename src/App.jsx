@@ -60,7 +60,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Client-Side File Encryption Tool</h1>
+      <h1>Client-Side File Encryption Web Application</h1>
       <div className="radio-group">
         <label>
           <input
