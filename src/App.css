@@ -24,7 +24,6 @@ body {
   text-align: center;
   border: 1.5px solid #e5e8ef;
   transition: box-shadow 0.3s;
-  
 }
 
 h1 {
@@ -177,7 +176,7 @@ textarea {
   background: #e0f2f1;
   border-radius: 11px;
   border: 1.3px solid #cfd8e3;
-  width: 100%;
+  width: 90%;
   margin: 10px 0 22px 0;
   font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', 'Liberation Mono', monospace;
   padding: 14px 16px;
